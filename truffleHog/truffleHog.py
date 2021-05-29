@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
@@ -14,11 +14,14 @@ import os
 import re
 import json
 import stat
+import requests
 from git import Repo
 from git import NULL_TREE
 from truffleHogRegexes.regexChecks import regexes
 
 
+GH = 'https://api.github.com'
+TOKEN = os.getenv("GH_TOKEN")
 
 def main():
     parser = argparse.ArgumentParser(description='Find secrets hidden in the depths of git.')
@@ -42,7 +45,8 @@ def main():
                              'effectively excluded via the --include_paths option.')
     parser.add_argument("--repo_path", type=str, dest="repo_path", help="Path to the cloned repo. If provided, git_url will not be used")
     parser.add_argument("--cleanup", dest="cleanup", action="store_true", help="Clean up all temporary result files")
-    parser.add_argument('git_url', type=str, help='URL for secret searching')
+    parser.add_argument('-q', "--query", help="query code to get targets")
+    parser.add_argument('-u', '--git_url', type=str, help='URL for secret searching')
     parser.set_defaults(regex=False)
     parser.set_defaults(rules={})
     parser.set_defaults(allow={})
@@ -52,6 +56,7 @@ def main():
     parser.set_defaults(branch=None)
     parser.set_defaults(repo_path=None)
     parser.set_defaults(cleanup=False)
+    parser.set_defaults(git_url=None)
     args = parser.parse_args()
     rules = {}
     if args.rules:
@@ -89,8 +94,17 @@ def main():
             if pattern and not pattern.startswith('#'):
                 path_exclusions.append(re.compile(pattern))
 
-    output = find_strings(args.git_url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
-            surpress_output=False, custom_regexes=regexes, branch=args.branch, repo_path=args.repo_path, path_inclusions=path_inclusions, path_exclusions=path_exclusions, allow=allow)
+    if args.query:
+        targets = query_code(args.query)
+        print('Found targets:', targets)
+        for url in targets:
+            output = find_strings(url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
+                surpress_output=False, custom_regexes=regexes, branch=args.branch, repo_path=args.repo_path, path_inclusions=path_inclusions, path_exclusions=path_exclusions, allow=allow)
+
+    if args.git_url:
+        output = find_strings(args.git_url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
+                surpress_output=False, custom_regexes=regexes, branch=args.branch, repo_path=args.repo_path,
+                path_inclusions=path_inclusions, path_exclusions=path_exclusions, allow=allow)
     project_path = output["project_path"]
     if args.cleanup:
         clean_up(output)
@@ -98,6 +112,16 @@ def main():
         sys.exit(1)
     else:
         sys.exit(0)
+
+def query_code(q, length=100):
+    r = requests.get(GH + '/search/code', params={'q':q, 'access_token':TOKEN})
+    dic = json.loads(r.text)
+    tot = dic['total_count']
+    targets = set()
+    for x in dic['items']:
+        repo_url = x["repository"]["html_url"]
+        targets.add(repo_url)
+    return targets
 
 def read_pattern(r):
     if r.startswith("regex:"):
@@ -328,6 +352,7 @@ def find_strings(git_url, since_commit=None, max_depth=1000000, printJson=False,
     else:
         project_path = clone_git_repo(git_url)
     repo = Repo(project_path)
+    print(git_url, project_path)
     already_searched = set()
     output_dir = tempfile.mkdtemp()
 

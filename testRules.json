@@ -1,3 +1,5 @@
 {
-    "RSA private key": "-----BEGIN EC PRIVATE KEY-----"
+    "RSA private key": "-----BEGIN EC PRIVATE KEY-----",
+    "SHU ID":          "1[1-9]1[27][0-9]{4}",
+    "Email Account":   "^(\\w|\\.|\\_|\\-)+[@](\\w|\\_|\\-|\\.)+[.]\\w{2,3}$"
 }
