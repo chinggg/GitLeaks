@@ -15,6 +15,7 @@ import re
 import json
 import stat
 import requests
+from collections import defaultdict
 from git import Repo
 from git import NULL_TREE
 from truffleHogRegexes.regexChecks import regexes
@@ -22,6 +23,8 @@ from truffleHogRegexes.regexChecks import regexes
 
 GH = 'https://api.github.com'
 TOKEN = os.getenv("GH_TOKEN")
+
+BAN = {'github.io'}
 
 def main():
     parser = argparse.ArgumentParser(description='Find secrets hidden in the depths of git.')
@@ -125,7 +128,7 @@ def main():
 
 def query_code(q, length=100):
     page, tot = 1, 1000
-    targets = set()
+    targets = defaultdict(int)
     params = {'q':q, 'access_token':TOKEN, 'sort':'index', 'per_page':100, 'page':page}
     while params['page']*100 <= tot:
         r = requests.get(GH + '/search/code', params=params)
@@ -140,7 +143,10 @@ def query_code(q, length=100):
             print("total_count (round to 100):", tot)
         for x in dic['items']:
             repo_url = x["repository"]["html_url"]
-            targets.add(repo_url)
+            for y in BAN:
+                if y in repo_url:
+                    continue
+            targets[repo_url] += 1
         params['page'] += 1
     return targets
 
