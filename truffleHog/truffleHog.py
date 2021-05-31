@@ -127,7 +127,7 @@ def main():
 def query_code(q, length=100):
     page, tot = 1, 1000
     targets = defaultdict(int)
-    params = {'q':q, 'access_token':TOKEN, 'sort':'index', 'per_page':100, 'page':page}
+    params = {'q':q, 'access_token':TOKEN, 'sort':'indexed', 'per_page':100, 'page':page}
     while params['page']*100 <= tot:
         r = requests.get(GH + '/search/code', params=params)
         dic = json.loads(r.text)
@@ -141,10 +141,13 @@ def query_code(q, length=100):
             print("total_count (round to 100):", tot)
         for x in dic['items']:
             repo_url = x["repository"]["html_url"]
+            flag = 1
             for y in BAN:
                 if y in repo_url:
-                    continue
-            targets[repo_url] += 1
+                    flag = 0
+                    break
+            if flag:
+                targets[repo_url] += 1
         params['page'] += 1
     return targets
 
