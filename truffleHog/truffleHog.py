@@ -96,10 +96,14 @@ def main():
 
     if args.query:
         targets = query_code(args.query)
-        print('Found targets:', targets)
+        print('Found', len(targets), 'targets:', targets)
+        cnt = 0
         for url in targets:
             output = find_strings(url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
                 surpress_output=False, custom_regexes=regexes, branch=args.branch, repo_path=args.repo_path, path_inclusions=path_inclusions, path_exclusions=path_exclusions, allow=allow)
+            if output["foundIssues"]:
+                cnt += 1
+        print(cnt)
 
     if args.git_url:
         output = find_strings(args.git_url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
@@ -114,13 +118,24 @@ def main():
         sys.exit(0)
 
 def query_code(q, length=100):
-    r = requests.get(GH + '/search/code', params={'q':q, 'access_token':TOKEN})
-    dic = json.loads(r.text)
-    tot = dic['total_count']
+    page, tot = 1, 1000
     targets = set()
-    for x in dic['items']:
-        repo_url = x["repository"]["html_url"]
-        targets.add(repo_url)
+    params = {'q':q, 'access_token':TOKEN, 'sort':'index', 'per_page':100, 'page':page}
+    while params['page']*100 <= tot:
+        r = requests.get(GH + '/search/code', params=params)
+        dic = json.loads(r.text)
+        if tot == 1000:
+            try:
+                tot = min(dic['total_count'], tot)
+            except KeyError as e:
+                print(e)
+                print(dic)
+            tot = tot + 100 - tot % 100  if tot % 100 else tot
+            print("total_count (round to 100):", tot)
+        for x in dic['items']:
+            repo_url = x["repository"]["html_url"]
+            targets.add(repo_url)
+        params['page'] += 1
     return targets
 
 def read_pattern(r):
