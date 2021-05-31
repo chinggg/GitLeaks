@@ -101,18 +101,16 @@ def main():
         targets = query_code(args.query)
         print('Found', len(targets), 'targets:', targets)
         cnt = 0
-        ans = []
+        fn = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + '.log'
         for url in targets:
             output = find_strings(url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
                 surpress_output=False, custom_regexes=regexes, branch=args.branch, repo_path=args.repo_path, path_inclusions=path_inclusions, path_exclusions=path_exclusions, allow=allow)
             if output["foundIssues"]:
                 cnt += 1
-                ans.append(output)
+                with open(fn,'a') as f:
+                    json.dump(output, f)
+                    f.write('\n')
         print(cnt)
-        fn = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + '.log'
-        with open(fn) as f:
-            for x in ans:
-                f.write(json.dumps(x)+'\n')
 
     if args.git_url:
         output = find_strings(args.git_url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
