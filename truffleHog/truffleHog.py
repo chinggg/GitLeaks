@@ -24,7 +24,7 @@ from truffleHogRegexes.regexChecks import regexes
 GH = 'https://api.github.com'
 TOKEN = os.getenv("GH_TOKEN")
 
-cnter = defaultdict(int)
+cnter = {}
 BAN_REPO = {'github.io', 'blog'}
 BAN_TYPE = {'.html'}
 MAX_REPO_SIZE = 102400
@@ -329,7 +329,11 @@ def regex_check(printableDiff, commit_time, branch_name, prev_commit, blob, comm
             regex_matches.append(foundRegex)
             dot = foundRegex['path'].rfind('.')
             # if '.' not found, dot = -1
-            cnter[foundRegex['path'][dot+1:]] += 1
+            try:
+                cnter[foundRegex['path'][dot+1:]][0] += 1
+                cnter[foundRegex['path'][dot+1:]][1].append(found_strings)
+            except KeyError:
+                cnter[foundRegex['path'][dot+1:]] = [1, [found_strings]]
 
     return regex_matches
 
