@@ -25,8 +25,10 @@ GH = 'https://api.github.com'
 TOKEN = os.getenv("GH_TOKEN")
 
 cnter = defaultdict(int)
-
-BAN = {'github.io', 'blog'}
+BAN_REPO = {'github.io', 'blog'}
+BAN_TYPE = {'.html'}
+MAX_REPO_SIZE = 102400
+MAX_COMMITS = 500
 
 def main():
     parser = argparse.ArgumentParser(description='Find secrets hidden in the depths of git.')
@@ -105,8 +107,6 @@ def main():
         cnt = 0
         fn = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + '.log'
         for url in targets:
-            if any([url in ban for ban in BAN]):
-                continue
             output = find_strings(url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
                 surpress_output=False, custom_regexes=regexes, branch=args.branch, repo_path=args.repo_path, path_inclusions=path_inclusions, path_exclusions=path_exclusions, allow=allow)
             if output["foundIssues"]:
@@ -136,7 +136,10 @@ def query_code(q, length=100):
     params = {'q':q, 'access_token':TOKEN, 'sort':'indexed', 'per_page':100, 'page':page}
     while params['page']*100 <= tot:
         r = requests.get(GH + '/search/code', params=params)
-        dic = json.loads(r.text)
+        try:
+            dic = json.loads(r.text)
+        except json.decoder.JSONDecodeError:
+            print(r, r.text)
         if tot == 1000:
             try:
                 tot = min(dic['total_count'], tot)
@@ -147,13 +150,18 @@ def query_code(q, length=100):
             print("total_count (round to 100):", tot)
         for x in dic['items']:
             repo_url = x["repository"]["html_url"]
-            flag = 1
-            for y in BAN:
-                if y in repo_url:
-                    flag = 0
-                    break
-            if flag:
-                targets[repo_url] += 1
+            api_url = x["repository"]["url"]
+            if any([repo_url in ban for ban in BAN_REPO]):
+                continue
+            r2 = requests.get(api_url)
+            try:
+                dic2 = json.loads(r2.text)
+                if dic2["size"] > MAX_REPO_SIZE:
+                    continue
+            except json.decoder.JSONDecodeError:
+                print(r2, r2.text)
+            targets[repo_url] += 1
+            print(repo_url, dic2["size"])
         params['page'] += 1
     return targets
 
@@ -326,6 +334,8 @@ def regex_check(printableDiff, commit_time, branch_name, prev_commit, blob, comm
 def diff_worker(diff, curr_commit, prev_commit, branch_name, commitHash, custom_regexes, do_entropy, do_regex, printJson, surpress_output, path_inclusions, path_exclusions, allow):
     issues = []
     for blob in diff:
+        if any([blob.b_path.endswith(ban) for ban in BAN_TYPE]):
+            continue
         printableDiff = blob.diff.decode('utf-8', errors='replace')
         if printableDiff.startswith("Binary files"):
             continue
@@ -391,7 +401,11 @@ def find_strings(git_url, since_commit=None, max_depth=1000000, printJson=False,
         project_path = clone_git_repo(git_url)
     repo = Repo(project_path)
     commit_len = len(list(repo.iter_commits()))
-    print(git_url, project_path, commit_len)
+    file_cnt = len(repo.tree().traverse())
+    print(git_url, project_path, 'commit_len:', commit_len, 'file_cnt', file_cnt)
+    if commit_len > MAX_COMMITS:
+        print(f"Too many commits ({commit_len})")
+        return output
     already_searched = set()
     output_dir = tempfile.mkdtemp()
 
