@@ -138,7 +138,7 @@ def query_code(q, length=100):
         r = requests.get(GH + '/search/code', params=params)
         try:
             dic = json.loads(r.text)
-        except json.decoder.JSONDecodeError:
+        except (KeyError, json.decoder.JSONDecodeError):
             print(r, r.text)
         if tot == 1000:
             try:
@@ -151,17 +151,17 @@ def query_code(q, length=100):
         for x in dic['items']:
             repo_url = x["repository"]["html_url"]
             api_url = x["repository"]["url"]
-            if any([repo_url in ban for ban in BAN_REPO]):
+            if any([ban in repo_url for ban in BAN_REPO]):
                 continue
             r2 = requests.get(api_url)
             try:
                 dic2 = json.loads(r2.text)
                 if dic2["size"] > MAX_REPO_SIZE:
                     continue
-            except json.decoder.JSONDecodeError:
+            except (KeyError, json.decoder.JSONDecodeError):
                 print(r2, r2.text)
             targets[repo_url] += 1
-            print(repo_url, dic2["size"])
+            print(repo_url, "size:", dic2["size"])
         params['page'] += 1
     return targets
 
