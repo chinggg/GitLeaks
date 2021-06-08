@@ -155,7 +155,7 @@ def query_code(q, length=100):
                 continue
             if any([ban in repo_url for ban in BAN_REPO]):
                 continue
-            r2 = requests.get(api_url)
+            r2 = requests.get(api_url, params={'access_token':TOKEN})
             try:
                 dic2 = json.loads(r2.text)
                 if dic2["size"] > MAX_REPO_SIZE:
