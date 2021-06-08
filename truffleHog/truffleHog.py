@@ -403,7 +403,7 @@ def find_strings(git_url, since_commit=None, max_depth=1000000, printJson=False,
         project_path = clone_git_repo(git_url)
     repo = Repo(project_path)
     commit_len = len(list(repo.iter_commits()))
-    file_cnt = len(repo.tree().traverse())
+    file_cnt = len(list(repo.tree().traverse()))
     print(git_url, project_path, 'commit_len:', commit_len, 'file_cnt', file_cnt)
     if commit_len > MAX_COMMITS:
         print(f"Too many commits ({commit_len})")
