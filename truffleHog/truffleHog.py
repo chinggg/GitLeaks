@@ -319,7 +319,7 @@ def regex_check(printableDiff, commit_time, branch_name, prev_commit, blob, comm
             regex_matches.append(foundRegex)
             dot = foundRegex['path'].rfind('.')
             # if '.' not found, dot = -1
-            cnter[foundRegex[dot+1:]] += 1
+            cnter[foundRegex['path'][dot+1:]] += 1
 
     return regex_matches
 
