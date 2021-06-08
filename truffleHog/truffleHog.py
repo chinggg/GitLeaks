@@ -407,6 +407,9 @@ def find_strings(git_url, since_commit=None, max_depth=1000000, printJson=False,
     print(git_url, project_path, 'commit_len:', commit_len, 'file_cnt', file_cnt)
     if commit_len > MAX_COMMITS:
         print(f"Too many commits ({commit_len})")
+        output["project_path"] = project_path
+        output["clone_uri"] = git_url
+        output["commit_len"] = commit_len
         return output
     already_searched = set()
     output_dir = tempfile.mkdtemp()
