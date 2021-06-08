@@ -336,7 +336,7 @@ def regex_check(printableDiff, commit_time, branch_name, prev_commit, blob, comm
 def diff_worker(diff, curr_commit, prev_commit, branch_name, commitHash, custom_regexes, do_entropy, do_regex, printJson, surpress_output, path_inclusions, path_exclusions, allow):
     issues = []
     for blob in diff:
-        if any([blob.b_path.endswith(ban) for ban in BAN_TYPE]):
+        if any([(blob.b_path or blob.a_path).endswith(ban) for ban in BAN_TYPE]):
             continue
         printableDiff = blob.diff.decode('utf-8', errors='replace')
         if printableDiff.startswith("Binary files"):
