@@ -24,7 +24,9 @@ from truffleHogRegexes.regexChecks import regexes
 GH = 'https://api.github.com'
 TOKEN = os.getenv("GH_TOKEN")
 
-BAN = {'github.io'}
+cnter = defaultdict(int)
+
+BAN = {'github.io', 'blog'}
 
 def main():
     parser = argparse.ArgumentParser(description='Find secrets hidden in the depths of git.')
@@ -103,14 +105,18 @@ def main():
         cnt = 0
         fn = datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + '.log'
         for url in targets:
+            if any([url in ban for ban in BAN]):
+                continue
             output = find_strings(url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
                 surpress_output=False, custom_regexes=regexes, branch=args.branch, repo_path=args.repo_path, path_inclusions=path_inclusions, path_exclusions=path_exclusions, allow=allow)
             if output["foundIssues"]:
                 cnt += 1
-                with open(fn,'a') as f:
+                with open(fn, 'a') as f:
                     json.dump(output, f)
                     f.write('\n')
         print(cnt)
+        with open('cnter.log', 'w') as f:
+            json.dump(cnter, f)
 
     if args.git_url:
         output = find_strings(args.git_url, args.since_commit, args.max_depth, args.output_json, args.do_regex, do_entropy,
@@ -311,6 +317,9 @@ def regex_check(printableDiff, commit_time, branch_name, prev_commit, blob, comm
             foundRegex['reason'] = key
             foundRegex['commitHash'] = prev_commit.hexsha
             regex_matches.append(foundRegex)
+            if dot := foundRegex['path'].rfind('.') != -1:
+                cnter[foundRegex[dot+1:]] += 1
+
     return regex_matches
 
 def diff_worker(diff, curr_commit, prev_commit, branch_name, commitHash, custom_regexes, do_entropy, do_regex, printJson, surpress_output, path_inclusions, path_exclusions, allow):
@@ -380,7 +389,8 @@ def find_strings(git_url, since_commit=None, max_depth=1000000, printJson=False,
     else:
         project_path = clone_git_repo(git_url)
     repo = Repo(project_path)
-    print(git_url, project_path)
+    commit_len = len(list(repo.iter_commits()))
+    print(git_url, project_path, commit_len)
     already_searched = set()
     output_dir = tempfile.mkdtemp()
 
@@ -430,6 +440,7 @@ def find_strings(git_url, since_commit=None, max_depth=1000000, printJson=False,
     output["project_path"] = project_path
     output["clone_uri"] = git_url
     output["issues_path"] = output_dir
+    output["commit_len"] = commit_len
     if not repo_path:
         shutil.rmtree(project_path, onerror=del_rw)
     return output
