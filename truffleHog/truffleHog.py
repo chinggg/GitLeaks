@@ -151,6 +151,8 @@ def query_code(q, length=100):
         for x in dic['items']:
             repo_url = x["repository"]["html_url"]
             api_url = x["repository"]["url"]
+            if repo_url in targets:
+                continue
             if any([ban in repo_url for ban in BAN_REPO]):
                 continue
             r2 = requests.get(api_url)
