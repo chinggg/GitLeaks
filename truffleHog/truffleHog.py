@@ -317,8 +317,9 @@ def regex_check(printableDiff, commit_time, branch_name, prev_commit, blob, comm
             foundRegex['reason'] = key
             foundRegex['commitHash'] = prev_commit.hexsha
             regex_matches.append(foundRegex)
-            if dot := foundRegex['path'].rfind('.') != -1:
-                cnter[foundRegex[dot+1:]] += 1
+            dot = foundRegex['path'].rfind('.')
+            # if '.' not found, dot = -1
+            cnter[foundRegex[dot+1:]] += 1
 
     return regex_matches
 
