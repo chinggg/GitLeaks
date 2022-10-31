@@ -4,7 +4,9 @@
 [![codecov](https://codecov.io/gh/trufflesecurity/truffleHog/branch/master/graph/badge.svg)](https://codecov.io/gh/trufflesecurity/truffleHog)
 
 
-** The code has been modified by me to search for targets before working. And I specify some keywords targeted at SHU students just to evaluate the threats of GitHub leakage.  **
+**I made an experiment to evaluate the threats of GitHub secret leakage targetting college students. I modified truffleHog to search for remote targets before working locally. By applying some filters, most false positives could be excluded and I got fruitful results.**
+
+**Now the [TruffleHog](https://github.com/trufflesecurity/trufflehog) v3 has been completely rewritten in Go so I cannot guarantee the code still works. I also disclaim any responsibility for any illegal use of the code.**
 
 Searches through git repositories for secrets, digging deep into commit history and branches. This is effective at finding secrets accidentally committed.
 
